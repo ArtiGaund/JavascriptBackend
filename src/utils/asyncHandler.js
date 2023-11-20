@@ -2,7 +2,7 @@
 // requestHandler is a function (here recieving function)
 // next is used here so that who ever next want to perform task they can do it, if error occur her
 const asyncHandler = (requestHandler) => {
-    (req, res, next) => {
+    return (req, res, next) => {
         Promise.resolve(requestHandler( req, res, next )).catch((error) => next(error))
     }
 }
