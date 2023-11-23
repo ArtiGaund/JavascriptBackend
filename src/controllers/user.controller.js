@@ -22,7 +22,7 @@ const registerUser = asyncHandler ( async ( req, res ) => {
     // req.body can be used if data is coming from json or form 
     //step. 1) getting details from user
     const { username, email, fullName, password} = req.body
-    console.log("email: ",email);
+    // console.log("email: ",email);
     //step 2) Validation
     if (
         [fullName, username, email, password].some((field) => field?.trim() === "")
@@ -32,7 +32,7 @@ const registerUser = asyncHandler ( async ( req, res ) => {
     // TODO: email validation (proper email)
     //step 3) user already exist or not
     //User can directly contact to db
-    const existedUser = User.findOne({
+    const existedUser =await User.findOne({
         $or: [ { username }, { email } ]
     }) // return first user who have this value, it will check either same username exist or same email exist
     if(existedUser){
@@ -44,7 +44,11 @@ const registerUser = asyncHandler ( async ( req, res ) => {
     // req.body by default given by express, req.files is given by multer(middleware)
     // this file is on our server /public/temp
     const avatarLocalPath = req.files?.avatar[0]?.path; // avatar have many field like type, size, etc, we are fetching path (url)
-    const coverImageLocalPath = req.files?.coverImage[0]?.path;
+    // const coverImageLocalPath = req.files?.coverImage[0]?.path;
+    let coverImageLocalPath;
+    if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0 ){
+        coverImageLocalPath = req.files.coverImage[0].path;
+    }
     if(!avatarLocalPath){
         throw new ApiError(400, "Avatar is required!")
     }
