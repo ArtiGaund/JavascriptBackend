@@ -6,6 +6,28 @@ import { User } from "../models/user.model.js"
 import { uploadOnCloudinary } from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 
+// method to generate access and refresh token
+const generateAccessAndRefreshTokens = async (userId) => {
+    try {
+        // find user
+        const user = await User.findById(userId)
+        //generate the tokens
+        const accessToken = user.generateAccessToken()
+        const refreshToken = user.generateRefreshToken()
+
+        //adding refresh token into database as well (adding value in object)
+        user.refreshToken = refreshToken
+        //saving user, when value is saved here mongos model is kickin, means password field is also kickin, password is required
+        // validateBeforeSave is used which is false, means no validate to be added, directly save the value
+        await user.save({ validateBeforeSave: false})
+        // returning access and refresh token 
+        return { accessToken, refreshToken }
+
+    } catch (error) {
+        throw new ApiError(500, "Something went wrong while generating access and refresh token!")
+    }
+}
+
 // method for user registration
 const registerUser = asyncHandler ( async ( req, res ) => {
     //1) get user details from frontend
@@ -81,4 +103,101 @@ const registerUser = asyncHandler ( async ( req, res ) => {
    )
 })  
 
-export {registerUser};
+const loginUser = asyncHandler( async ( req, res) => {
+//TODOs: 1) fetch data from req body
+      // 2) username or email is provided or not
+      // 3)find the user
+      // 4) check password
+      // 5) generate access and refresh token and given to the user
+      // 6) send these tokens in cookies
+      // 1) fetching data from req body
+      const { email, username, password } = req.body
+      // 2) email or username is not provided
+      if( !username || !email){
+        throw new ApiError(400, "username or email is required!")
+      }
+      // 3) finding user in database
+      // $or... these are mongoDB operators in these we can pass object 
+      const user = await User.findOne({
+         // this or operator will find one value which is either based on username or email
+        $or: [{ username }, { email }]
+      })
+      // no value found means user is not registered
+      if(!user){
+        throw new ApiError(404, " User does not exist! ")
+      }
+      // 4) check password
+      // User is mongos object, to access methods of mongoDB User is used like findOne, findId...
+      // here user is used to access our methods which we have created like generateAccessToken, isPasswordCorrect
+      const isPasswordValid =  await user.isPasswordCorrect(password) 
+      if(!isPasswordValid){
+        throw new ApiError(401, "Invalid user credentials!")
+      }
+      // 5) generate access Token and refresh Token
+     const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id)
+     // 6) send these tokens in cookies
+     // what all information to be given to user, there are many unwanted fields like password is never sended to user
+     // refresh token in user is actually empty because its fetched before generating refresh token
+      //here database query is done, its depend upon the developer to decide whether this database query is expensive
+      // if its expensive then update by user.refreshToken = refreshToken otherwise do by database query
+      const loggedInUser = await User.findById(user._id)
+      .select("-password -refreshToken ")
+      //sending cookies
+      const options = {
+        // by httpOnly and secure, these cookies is only modified by server, from frontend it cannot be modified
+        // we can see them but not modifiable
+        httpOnly: true,
+        secure: true
+      }
+      return res
+      .status(200)
+      .cookie("accessToken", accessToken, options)
+      .cookie("refreshToken", refreshToken, options)
+      .json(
+        new ApiResponse(
+            200,
+            {
+                // these values will help the user to store these tokens in localstorage, or using in mobile there
+                // cookies will not be set
+                user: loggedInUser, accessToken, refreshToken
+            },
+            "User Logged In successfully!"
+        )
+      )
+
+
+})
+
+const logoutUser = asyncHandler( async ( req, res) => {
+    // now we have access of req.user
+   await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set: {
+                refreshToken: undefined
+            }
+        },
+        {
+            new: true
+        }
+    )
+    const options = {
+        // by httpOnly and secure, these cookies is only modified by server, from frontend it cannot be modified
+        // we can see them but not modifiable
+        httpOnly: true,
+        secure: true
+      }
+
+      //clearing cookies
+      return res
+      .status(200)
+      .clearCookie("accessToken", options)
+      .clearCookie("refreshToken", options)
+      .json(new ApiResponse(200, {}, "User Logged Out Successfully!"))
+})
+
+export {
+    registerUser,
+    loginUser,
+    logoutUser,
+}
