@@ -1,8 +1,8 @@
 // this middleware will verify user is there or not
 
-import { User } from "../models/user.model";
-import { ApiError } from "../utils/ApiError";
-import { asyncHandler } from "../utils/asyncHandler";
+import { User } from "../models/user.model.js";
+import { ApiError } from "../utils/ApiError.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 import jwt from "jsonwebtoken"
 // here res is not in used thats why _ is written instead of res
 export const verifyJWT = asyncHandler(async (req, _, next) => {

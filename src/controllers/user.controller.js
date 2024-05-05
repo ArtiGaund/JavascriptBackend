@@ -5,7 +5,7 @@ import { ApiError } from "../utils/ApiError.js"
 import { User } from "../models/user.model.js"
 import { uploadOnCloudinary } from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
-
+import jwt from "jsonwebtoken"
 // method to generate access and refresh token
 const generateAccessAndRefreshTokens = async (userId) => {
     try {
@@ -114,8 +114,10 @@ const loginUser = asyncHandler( async ( req, res) => {
       const { email, username, password } = req.body
       // 2) email or username is not provided
       if( !username || !email){
+        if(!username && !email){
         throw new ApiError(400, "username or email is required!")
       }
+    }
       // 3) finding user in database
       // $or... these are mongoDB operators in these we can pass object 
       const user = await User.findOne({
@@ -196,8 +198,60 @@ const logoutUser = asyncHandler( async ( req, res) => {
       .json(new ApiResponse(200, {}, "User Logged Out Successfully!"))
 })
 
+const refreshAccessToken = asyncHandler( async ( req, res) => {
+    // we have refresh access token, how to refresh through it, we have to send refresh token, accessing refresh 
+    // token through cookies ( req.body => someone is using mobile, req.cookies => someone is using web)
+    try {
+        const incomingRefreshToken = req.cookie.refreshToken || req.body.refreshToken 
+    if(!incomingRefreshToken){
+        // why we are using ApiError() instead of ApiResponse => its an ApiResponse only. We are not crashing application
+        // we are sending proper response . Its important to send error,so that we don't get 200 fake response,
+        // 200 fake response => your application is not working but you are getting correct response
+        throw new ApiError(401, "Unauthorizeqed request!")
+    }
+    // verifying incoming token, bz we want raw token
+    // its not necessary we will get payload as well in decodedToken(its an optional)
+    const decodedToken = jwt.verify(
+        incomingRefreshToken,
+        process.env.REFRESH_TOKEN_SECRET
+    )
+    // we have _id in decodedToken, using this to find the user in MongoDb
+    const user = User.findById(decodedToken?._id)
+    if(!user){
+        throw new ApiError(401, "Invalid refresh token!")
+    }
+    // matching the tokens
+    if(incomingRefreshToken !== user?.refreshToken){
+        throw new ApiError(401, "Refresh token is expired or used!")
+    }
+    // generating the new tokens
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+
+    const{ accessToken, newRefreshToken } = await generateAccessAndRefreshTokens(user._id)
+    return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", newRefreshToken, options)
+    .json(
+        new ApiResponse(
+            200,
+            {accessToken, refreshToken: newRefreshToken},
+            "Access Token refreshed successfully."
+        )
+    )
+
+    } catch (error) {
+        throw new ApiError(401, error?.message || "Invalid refresh token")
+    }
+    
+})
+
 export {
     registerUser,
     loginUser,
     logoutUser,
+    refreshAccessToken
 }
