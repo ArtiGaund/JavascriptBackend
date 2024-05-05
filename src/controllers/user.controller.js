@@ -207,7 +207,7 @@ const refreshAccessToken = asyncHandler( async ( req, res) => {
         // why we are using ApiError() instead of ApiResponse => its an ApiResponse only. We are not crashing application
         // we are sending proper response . Its important to send error,so that we don't get 200 fake response,
         // 200 fake response => your application is not working but you are getting correct response
-        throw new ApiError(401, "Unauthorizeqed request!")
+        throw new ApiError(401, "Unauthorized request!")
     }
     // verifying incoming token, bz we want raw token
     // its not necessary we will get payload as well in decodedToken(its an optional)
