@@ -63,7 +63,7 @@ const registerUser = asyncHandler ( async ( req, res ) => {
     // step 4) check for images, check for avatar
     // we have all the data in req.body, but we have added middleware in routes (user.routes.js), it also give some
     // access(it add more fields in req)
-    // req.body by default given by express, req.files is given by multer(middleware)
+    // req.body by default given by express, req.files is given by multer(middleware), files bz we are giving option to upload multiple files
     // this file is on our server /public/temp
     const avatarLocalPath = req.files?.avatar[0]?.path; // avatar have many field like type, size, etc, we are fetching path (url)
     // const coverImageLocalPath = req.files?.coverImage[0]?.path;
@@ -249,9 +249,135 @@ const refreshAccessToken = asyncHandler( async ( req, res) => {
     
 })
 
+// Basic activities
+const changeCurrentPassword = asyncHandler( async ( req, res) => {
+    // we don't have to worry during currentPassword change time, whether user is login or not, cookies are 
+    // present or not bz when we will create route, we will add verifyJwt() middleware there
+    const { oldPassword, newPassword } = req.body
+    // finding old user => i want user, then only i can go in field to verify password
+    // how to take user => if he/she can change the password that mean they are login, middleware is runned
+    // then in req.user has user, i can take out user id from there
+    const user = await User.findById(req.user?._id)
+    // checking password
+   const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
+   if(!isPasswordCorrect){
+    throw new ApiError(400, "Invalid old password")
+   }
+   user.password = newPassword
+    // when this will trigger, we will go in model, we are setting password pre hook will run 
+    // saving this
+   await user.save({ validateBeforeSave: false})   //pre hook will run now
+   return res
+   .status(200)
+   .json(new ApiResponse(200, {}, "Password changed successfully."))
+})
+
+const getCurrentUser = asyncHandler( async ( req, res) => {
+    // we are using middleware so req.user have user
+    return res
+    .status(200)
+    .json(200, req.user, "Current User fetched successfully.")
+})
+// updating text based data
+const updateAccountDetails = asyncHandler( async ( req, res) => {
+    const { fullName, email} = req.body
+    
+    if(!fullName || !email){
+        throw new ApiError(400, "All fields are required!")
+    }
+    // finding user
+    const user = await User.findByIdAndUpdate(
+        req.user?._id, 
+        {
+            $set: {
+                fullName,
+                email
+            }
+        },
+        { new: true}
+    ).select("-password") //removing password
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Account details updated successfully."))
+})
+
+// if are updating files then keep its controller separately (image update, etc), if you are saving whole user
+// again text data is also send again an again, there will be less congestion in network if you will keep it
+// separately
+
+// files updating => middleware will be used multer=> to accept
+                    // 2) user should be login (these are done in routing)
+    
+    const updateUserAvatar = asyncHandler( async ( req, res) => {
+        // req.file we got through multer middleware, we need 1 file here thats why req.file
+        const avatarLocalPath = req.file?.path
+
+        if(!avatarLocalPath){
+            throw new ApiError(400, "Avatar file is missing")
+        }
+        // uploading this file in cloudanary
+        const avatar = await uploadOnCloudinary(avatarLocalPath)
+        if(!avatar.url){
+            throw new ApiError(400, "Error while uploading on avatar")
+        }
+        // updating avatar field
+       const user = await User.findByIdAndUpdate(
+            req.user?._id,
+            {
+                $set: {
+                    avatar: avatar.url
+                }
+            },
+            {new: true}
+        
+        ).select("-password")
+
+        return res
+        .status(200)
+        .json(
+            new ApiResponse(200, user, "Avatar updated successfully.")
+        )
+    })
+
+    const updateUserCoverImage = asyncHandler( async ( req, res) => {
+        // req.file we got through multer middleware, we need 1 file here thats why req.file
+        const coverImageLocalPath = req.file?.path
+
+        if(!coverImageLocalPath){
+            throw new ApiError(400, "Cover image file is missing")
+        }
+        // uploading this file in cloudanary
+        const coverImage = await uploadOnCloudinary(coverImageLocalPath)
+        if(!coverImage.url){
+            throw new ApiError(400, "Error while uploading on cover image")
+        }
+        // updating avatar field
+       const user  = await User.findByIdAndUpdate(
+            req.user?._id,
+            {
+                $set: {
+                    coverImage: coverImage.url
+                }
+            },
+            {new: true}
+        
+        ).select("-password")
+        return res
+        .status(200)
+        .json(
+            new ApiResponse(200, user, "Cover Image updated successfully.")
+        )
+    })
+
 export {
     registerUser,
     loginUser,
     logoutUser,
-    refreshAccessToken
+    refreshAccessToken,
+    changeCurrentPassword,
+    getCurrentUser,
+    updateAccountDetails,
+    updateUserAvatar,
+    updateUserCoverImage,
 }
