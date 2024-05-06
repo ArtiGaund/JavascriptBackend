@@ -103,6 +103,13 @@ const registerUser = asyncHandler ( async ( req, res ) => {
    )
 })  
 
+const options = {
+    // by httpOnly and secure, these cookies is only modified by server, from frontend it cannot be modified
+    // we can see them but not modifiable
+    httpOnly: true,
+    secure: true
+  }
+
 const loginUser = asyncHandler( async ( req, res) => {
 //TODOs: 1) fetch data from req body
       // 2) username or email is provided or not
@@ -145,12 +152,7 @@ const loginUser = asyncHandler( async ( req, res) => {
       const loggedInUser = await User.findById(user._id)
       .select("-password -refreshToken ")
       //sending cookies
-      const options = {
-        // by httpOnly and secure, these cookies is only modified by server, from frontend it cannot be modified
-        // we can see them but not modifiable
-        httpOnly: true,
-        secure: true
-      }
+      
       return res
       .status(200)
       .cookie("accessToken", accessToken, options)
@@ -183,12 +185,6 @@ const logoutUser = asyncHandler( async ( req, res) => {
             new: true
         }
     )
-    const options = {
-        // by httpOnly and secure, these cookies is only modified by server, from frontend it cannot be modified
-        // we can see them but not modifiable
-        httpOnly: true,
-        secure: true
-      }
 
       //clearing cookies
       return res
@@ -223,11 +219,6 @@ const refreshAccessToken = asyncHandler( async ( req, res) => {
     // matching the tokens
     if(incomingRefreshToken !== user?.refreshToken){
         throw new ApiError(401, "Refresh token is expired or used!")
-    }
-    // generating the new tokens
-    const options = {
-        httpOnly: true,
-        secure: true
     }
 
     const{ accessToken, newRefreshToken } = await generateAccessAndRefreshTokens(user._id)
@@ -316,6 +307,8 @@ const updateAccountDetails = asyncHandler( async ( req, res) => {
         if(!avatarLocalPath){
             throw new ApiError(400, "Avatar file is missing")
         }
+        // TODO: To delete old image
+
         // uploading this file in cloudanary
         const avatar = await uploadOnCloudinary(avatarLocalPath)
         if(!avatar.url){
@@ -370,6 +363,94 @@ const updateAccountDetails = asyncHandler( async ( req, res) => {
         )
     })
 
+
+    const getUserChannelProfile = asyncHandler( async ( req, res) => {
+        // when we want profile of any channel we go on the url of that channel
+        const { username }  = req.params
+        if(!username?.trim()){
+            throw new ApiError(400, "username is missing")
+        }
+        // can also be done by User.find({username}) but it will give all the data, but we need particular field
+        const channel = await User.aggregate([
+            {
+                // first pipeline, filtering document, we will get one document now
+                $match: {
+                    username: username?.toLowerCase()
+                }
+            },
+            {
+                // finding how many subscriber this channel have, using join method (second pipeline)
+                $lookup: {
+                    from: "$subscription",
+                    localField: "_id",
+                    foreignField: "channel",
+                    as: "subscribers"
+                }
+            },
+            {
+                // finding how many channel i have subscribed (pipeline 3)
+                $lookup: {
+                    from: "$subscription",
+                    localField: "_id",
+                    foreignField: "subscriber",
+                    as: "subscribedTo"
+                }
+            },
+            {
+                // adding both the above field (pipeline 4)
+                $addFields: {
+                    subscribersCount: {
+                        // give count for that field
+                        $size: "$subscribers"
+                    },
+                    channelsSubscribedToCount: {
+                        $size: "$subscribedTo"
+                    },
+                    isSubscribed: {
+                        $cond: {
+                            if: {
+                                // if your are in subscriber in it
+                                // req.user._id will give the id of current user and $subscribers is an field
+                                // in which we will search whether current user is there or not $subscribers.subscriber
+                                // in search in both array and object
+                                $in: [req.user?._id, "$subscribers.subscriber"]
+                            },
+                            then: true,
+                            else: false 
+                        }
+                    }
+                }
+            },
+            {
+                // project will not give all the values, it will give selective things, add 1 to field which you want to pass
+                // (pipline 5)
+                $project: {
+                    fullName: 1,
+                    username: 1,
+                    subscribersCount: 1,
+                    channelsSubscribedToCount: 1,
+                    isSubscribed: 1,
+                    avatar: 1,
+                    coverImage: 1,
+                    email: 1,
+                }
+            }
+        ])
+        if(!channel?.length){
+            throw new ApiError(404, "Channel does not exist!")
+        }
+        console.log("channel ",channel)
+
+        return res
+        .status(200)
+        .json(
+            new ApiResponse(200, channel[0], "User Channel profile fetched successfully.")
+        )
+    })
+
+
+
+
 export {
     registerUser,
     loginUser,
@@ -380,4 +461,5 @@ export {
     updateAccountDetails,
     updateUserAvatar,
     updateUserCoverImage,
+    getUserChannelProfile,
 }
