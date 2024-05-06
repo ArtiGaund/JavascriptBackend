@@ -6,6 +6,7 @@ import { User } from "../models/user.model.js"
 import { uploadOnCloudinary } from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import jwt from "jsonwebtoken"
+import mongoose from "mongoose"
 // method to generate access and refresh token
 const generateAccessAndRefreshTokens = async (userId) => {
     try {
@@ -448,7 +449,72 @@ const updateAccountDetails = asyncHandler( async ( req, res) => {
         )
     })
 
+    const getWatchHistory = asyncHandler( async ( req, res) => {
+        // req.user._id => we get string from mongodb, which is not id, we need ObjectId(--)
+        // we are using mongoose, when we give this id to it, it will convert it into mongodb object id
+        
+        // converting this id
+        const user = await User.aggregate([
+            {
+                $match: {
+                    // using id
+                    // we cannot use req.user._id here mongoose doesn't work because aggregation pipeline code
+                    // will directly go, so create mongoose objectId
+                    _id: new mongoose.Types.ObjectId(req.user?._id)
+                }
+            },
+            {
+                // watch history
+                $lookup: {
+                    from: "videos",
+                    localField: "watchHistory",
+                    foreignField: "_id",
+                    as: "watchHistory",  
+                    pipeline: [
+                        {
+                            // subpipeline
+                            $lookup: {
+                                from: "users",
+                                localField: "owner",
+                                foreignField: "_id",
+                                as: "owner",
+                                pipeline: [
+                                    // we don't want to give all the fields (owner field will have only these)
+                                    {
+                                        $project: {
+                                            fullName: 1,
+                                            username: 1,
+                                            avatar: 1
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            // we will get array, we need first value of that array 
+                            // changing data structure
+                            $addFields: {
+                                // overwriting owner field
+                                owner: {
+                                    $first: "$owner"
+                                }
+                            }
+                        }
+                    ]
+                }
+               
+            },
+            {
 
+            }
+        ])
+
+        return res
+        .status(200)
+        .json(
+            new ApiResponse(200, user[0].watchHistory , "Watch History fetched successfully.")
+        )
+    })
 
 
 export {
@@ -462,4 +528,5 @@ export {
     updateUserAvatar,
     updateUserCoverImage,
     getUserChannelProfile,
+    getWatchHistory,
 }
