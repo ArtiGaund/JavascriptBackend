@@ -44,7 +44,7 @@ const registerUser = asyncHandler ( async ( req, res ) => {
     // we get user details in req.body (its not compulsory we always get data from req.body, it can come from url, form)
     // req.body can be used if data is coming from json or form 
     //step. 1) getting details from user
-    const { username, email, fullName, password} = req.body
+    const { fullName, email, username, password} = req.body
     // console.log("email: ",email);
     //step 2) Validation
     if (
@@ -178,8 +178,8 @@ const logoutUser = asyncHandler( async ( req, res) => {
    await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set: {
-                refreshToken: undefined
+            $unset: {
+                refreshToken: 1
             }
         },
         {
@@ -199,7 +199,7 @@ const refreshAccessToken = asyncHandler( async ( req, res) => {
     // we have refresh access token, how to refresh through it, we have to send refresh token, accessing refresh 
     // token through cookies ( req.body => someone is using mobile, req.cookies => someone is using web)
     try {
-        const incomingRefreshToken = req.cookie.refreshToken || req.body.refreshToken 
+        const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken 
     if(!incomingRefreshToken){
         // why we are using ApiError() instead of ApiResponse => its an ApiResponse only. We are not crashing application
         // we are sending proper response . Its important to send error,so that we don't get 200 fake response,
@@ -213,7 +213,7 @@ const refreshAccessToken = asyncHandler( async ( req, res) => {
         process.env.REFRESH_TOKEN_SECRET
     )
     // we have _id in decodedToken, using this to find the user in MongoDb
-    const user = User.findById(decodedToken?._id)
+    const user = await User.findById(decodedToken?._id)
     if(!user){
         throw new ApiError(401, "Invalid refresh token!")
     }
@@ -268,7 +268,9 @@ const getCurrentUser = asyncHandler( async ( req, res) => {
     // we are using middleware so req.user have user
     return res
     .status(200)
-    .json(200, req.user, "Current User fetched successfully.")
+    .json(
+        new ApiResponse(200, req.user, "Current User fetched successfully.")
+    )
 })
 // updating text based data
 const updateAccountDetails = asyncHandler( async ( req, res) => {
@@ -382,7 +384,7 @@ const updateAccountDetails = asyncHandler( async ( req, res) => {
             {
                 // finding how many subscriber this channel have, using join method (second pipeline)
                 $lookup: {
-                    from: "$subscription",
+                    from: "subscription",
                     localField: "_id",
                     foreignField: "channel",
                     as: "subscribers"
@@ -391,7 +393,7 @@ const updateAccountDetails = asyncHandler( async ( req, res) => {
             {
                 // finding how many channel i have subscribed (pipeline 3)
                 $lookup: {
-                    from: "$subscription",
+                    from: "subscription",
                     localField: "_id",
                     foreignField: "subscriber",
                     as: "subscribedTo"
@@ -503,9 +505,6 @@ const updateAccountDetails = asyncHandler( async ( req, res) => {
                     ]
                 }
                
-            },
-            {
-
             }
         ])
 
