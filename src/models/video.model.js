@@ -1,4 +1,5 @@
 import mongoose, { Schema } from "mongoose";
+// aggreage paginate => we can't give all the videos to the user, its important to give pagination to them
 import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
 const videoSchema = new Schema(
     {
