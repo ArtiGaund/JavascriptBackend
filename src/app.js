@@ -24,6 +24,7 @@ app.use(cookieParser())
 
 //routes (import here only after all middleware, cookies) file segregation
 import userRouter from './routes/user.routes.js'
+import commentRouter from "./routes/comment.routes.js"
 
 
 //routes declaration
@@ -31,6 +32,6 @@ app.use("/api/v1/users", userRouter)
 // creating our own api's
 //https://localhost:8000/api/v1/users/register or /login (for login you don't have write again this api is written for
 // all methods of users)
-
+app.use("/api/v1/comments", commentRouter)
 
 export { app }
