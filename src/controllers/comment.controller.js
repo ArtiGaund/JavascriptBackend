@@ -10,15 +10,16 @@ const getVideoComments = asyncHandler(async (req, res) => {
     const {videoId} = req.params
     const {page = 1, limit = 10} = req.query
     // if videos id not found
-    if(!videoId){
-        throw new ApiError(404, "Videos url not found")
-    }
-    // check if video is present in the database
-    const video = await Video.findById(videoId)
-    if(!video){
-        throw new ApiError(400, "Video not found")
-    }
     try {
+        if(!videoId){
+            throw new ApiError(404, "Videos url not found")
+        }
+        // check if video is present in the database
+        const video = await Video.findById(videoId)
+        if(!video){
+            throw new ApiError(400, "Video not found")
+        }
+    
         const allComments = await Comment.aggregate(
             {
                 $match: {
@@ -75,19 +76,19 @@ const addComment = asyncHandler(async (req, res) => {
     // TODO: add a comment to a video
     const { videoId } =req.params
     const { newComment } = req.body
-
-    if(!videoId){
-        throw new ApiError(400, "Video url is required.")
-    }
-    const video = await Video.findById(videoId)
-    if(!video){
-        throw new ApiError(400, "Video is not found in the database.")
-    }
-
-    if(!newComment){
-        throw new ApiError(400, "Comment is required.")
-    }
     try {
+        if(!videoId){
+            throw new ApiError(400, "Video url is required.")
+        }
+        const video = await Video.findById(videoId)
+        if(!video){
+            throw new ApiError(400, "Video is not found in the database.")
+        }
+
+        if(!newComment){
+            throw new ApiError(400, "Comment is required.")
+        }
+    
         const comment = await Comment.create({
             content: newComment,
             video: video?._id,
@@ -114,20 +115,20 @@ const updateComment = asyncHandler(async (req, res) => {
     // TODO: update a comment
     const { commentId } = req.params
     const { newComment } = req.body
-
-    if(!commentId){
-        throw new ApiError(400, "Comment id is required")
-    }
-    if(!newComment){
-        throw new ApiError(400, "New comment is required")
-    }
-
-    const comment = await Comment.findById(commentId)
-
-    if(!comment){
-        throw new ApiError(400, "comment not existed while updating")
-    }
     try {
+        if(!commentId){
+            throw new ApiError(400, "Comment id is required")
+        }
+        if(!newComment){
+            throw new ApiError(400, "New comment is required")
+        }
+
+        const comment = await Comment.findById(commentId)
+
+        if(!comment){
+            throw new ApiError(400, "comment not existed while updating")
+        }
+   
         const updatedComment = await Comment.findByIdAndUpdate(
             req.user?._id,
             {
@@ -153,15 +154,16 @@ const updateComment = asyncHandler(async (req, res) => {
 
 const deleteComment = asyncHandler(async (req, res) => {
     // TODO: delete a comment
-    const { commentId } = req.params
-    if(!commentId){
-        throw new ApiError(400, "Comment id is required")
-    }
-    const comment = await Comment.findById(commentId)
-    if(!comment){
-        throw new ApiError(400, "Comment is not existed while deleting")
-    }
     try {
+    const { commentId } = req.params
+        if(!commentId){
+            throw new ApiError(400, "Comment id is required")
+        }
+        const comment = await Comment.findById(commentId)
+        if(!comment){
+            throw new ApiError(400, "Comment is not existed while deleting")
+        }
+   
         const deleteComment = await Comment.findByIdAndDelete(commentId)
         if(!deleteComment){
             throw new ApiError(400, "Error occur while deleting the comment")
