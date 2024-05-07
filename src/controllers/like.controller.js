@@ -22,7 +22,7 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
             throw new ApiError(400, "Video does not exist in database")
         }
     
-        const alreadyLiked = await Like.findOne({
+        const alreadyLiked = await Like.find({
             video: videoId,
             likedBy: req.user?._id
         })
@@ -68,7 +68,7 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
         }
 
         // checking if already liked
-        const alreadyLikedComment = await Like.findOne({
+        const alreadyLikedComment = await Like.find({
             comment: commentId,
             likedBy: req.user?._id
         })
@@ -108,7 +108,7 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
             throw new ApiError(200, "tweet doesn't exist in database")
         }
         // already liked
-        const alreadyLikedTweet = await Like.findOne({
+        const alreadyLikedTweet = await Like.find({
             tweet: tweetId,
             likedBy: req.user?._id
         })
