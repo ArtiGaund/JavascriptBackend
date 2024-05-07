@@ -10,9 +10,11 @@ const getVideoComments = asyncHandler(async (req, res) => {
     const {videoId} = req.params
     const {page = 1, limit = 10} = req.query
     try {
+        // if videoId is not given by user
         if(!videoId){
             throw new ApiError(400, "Video id is required")
         }
+        // checking video is in database
         const video = await Video.findById(videoId)
         if(!video){
             throw new ApiError(400, "Video is not present.")
@@ -21,19 +23,21 @@ const getVideoComments = asyncHandler(async (req, res) => {
         const allComments = await Comment.aggregate(
             {
                 $match: {
-                    video: new mongoose.Types.ObjectId(videoId)
+                    video: new mongoose.Types.ObjectId(videoId) //matching video id of Comment model
+                    // with video id of Video model
                 }
             },
             {
                 $lookup: {
-                    from: "users",
-                    localField: "owner",
-                    foreignField: "_id",
-                    as: "owner"
+                    from: "users", //search in users model
+                    localField: "owner", //this field is in Comment model
+                    foreignField: "_id", //this field is in User model
+                    as: "owner" //giving name
                 }
             },
             {
                 $addField:{
+                    // adding field of owner with user details in it
                     owner: {
                         $first: "$owner"
                     }
