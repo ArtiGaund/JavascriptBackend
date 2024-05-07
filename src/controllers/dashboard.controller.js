@@ -8,11 +8,7 @@ import {asyncHandler} from "../utils/asyncHandler.js"
 
 const getChannelStats = asyncHandler(async (req, res) => {
     // TODO: Get the channel stats like total video views, total subscribers, total videos, total likes etc.
-    try {
-        
-    } catch (error) {
-        throw new ApiError(401, error?.message)
-    }
+    
 })
 
 const getChannelVideos = asyncHandler(async (req, res) => {

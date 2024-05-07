@@ -4,12 +4,7 @@ import {asyncHandler} from "../utils/asyncHandler.js"
 
 
 const healthcheck = asyncHandler(async (req, res) => {
-    //for server is running properly
-    return res
-    .status(200)
-    .json(
-        new ApiResponse(200, {}, "Server is healthy!")
-    )    
+   
 })
 
 export {
