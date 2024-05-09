@@ -9,7 +9,47 @@ import {uploadOnCloudinary} from "../utils/cloudinary.js"
 
 const getAllVideos = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query
-   
+    try {
+        const skippedVideos = (page-1)*limit
+        const sortingVideo ={}
+        if(sortBy && sortType){
+            sortingVideo[sortBy]=sortType==='asc'? 1:-1
+        }else{
+            sortingVideo["createdAt"]=-1
+        }
+        if(!userId){
+            throw new ApiError(400, "User id is required to get all videos")
+        }
+        const videoList = await Video.aggregate(
+            {
+                $match:{
+                    owner: userId,
+                }
+            },
+            query && {
+                $match:query
+            },
+            {
+                $sort: sortingVideo
+            },
+            {
+                $skip: skippedVideos,
+            },
+            {
+                $limit: limit
+            }
+        )
+        if(!videoList){
+            throw new ApiError(400, "Error while fetching all videos of the user")
+        }
+        return res
+        .status(200)
+        .json(
+            new ApiError(200, videoList, "All videos of the user is fetched successfully.")
+        )
+    } catch (error) {
+        throw new ApiError(500, error?.message);
+    }
 })
 
 const publishAVideo = asyncHandler(async (req, res) => {
@@ -167,7 +207,7 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
         return res
         .status(200)
         .json(
-            new ApiResponse(200, video, "Video publish status toggled successfully.")
+            new ApiResponse(200, video,"Video publish status toggled successfully.")
         )
     } catch (error) {
         throw new ApiError(404, error?.message)
