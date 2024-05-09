@@ -20,7 +20,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
         if(!userId){
             throw new ApiError(400, "User id is required to get all videos")
         }
-        const videoList = await Video.aggregate(
+        const videoList = await Video.aggregate([
             {
                 $match:{
                     owner: userId,
@@ -38,8 +38,8 @@ const getAllVideos = asyncHandler(async (req, res) => {
             {
                 $limit: limit
             }
-        )
-        if(!videoList){
+        ])
+        if(!videoList || videoList.length()==0){
             throw new ApiError(400, "Error while fetching all videos of the user")
         }
         return res
