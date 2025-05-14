@@ -1,3 +1,4 @@
+# Javascript backend
 # Javascript Backend
 
 This project is a backend application built with Node.js and Express.js. It provides APIs for managing users, videos, playlists, tweets, comments, likes, subscriptions, and more. The backend is designed to handle user authentication, file uploads, and database interactions using MongoDB.
@@ -21,12 +22,24 @@ This project is a backend application built with Node.js and Express.js. It prov
 
 The project is structured as follows:   
 
-- **src/**: Contains the main application code.
-- **src/config/**: Configuration files for the application.
-- **src/controllers/**: Controller files for handling HTTP requests and responses.  
-- **src/models/**: Model files for defining database schemas.
-- **src/routes/**: Route files for defining HTTP routes.
-- **src/utils/**: Utility functions and helpers.
+- **src**: Contains the main application code.  
+
+- **test**: Contains test files for the application.
+
+- **config**: Contains configuration files for the application.
+
+- **utils**: Contains utility functions for the application.    
+
+- **routes**: Contains route files for the application.
+
+- **controllers**: Contains controller files for the application.
+
+- **middlewares**: Contains middleware files for the application.
+
+- **models**: Contains model files for the application.
+
+- **middlewares**: Contains middleware files for the application.
+
 
 ## Installation
 
@@ -34,31 +47,33 @@ The project is structured as follows:
    ```bash
    git clone <repository-url>
    cd JavascriptBackend
-    ```
+   ```
 
 2. Install dependencies:
    ```bash
-   npm install  
+   npm install
    ```
-
 3. Create a .env file in the root directory and configure the following environment variables:
 
-   - `MONGODB_URI`: The MongoDB connection string.
-   - `CLOUDINARY_CLOUD_NAME`: The Cloudinary cloud name.
-   - `CLOUDINARY_API_KEY`: The Cloudinary API key.
-   - `CLOUDINARY_API_SECRET`: The Cloudinary API secret.
-   - `ACCESS_TOKEN_SECRET`: The secret key for generating access tokens.
-   - `REFRESH_TOKEN_SECRET`: The secret key for generating refresh tokens.
-   - `ACCESS_TOKEN_EXPIRY`: The expiration time for access tokens.
-   - `REFRESH_TOKEN_EXPIRY`: The expiration time for refresh tokens.
+   PORT=8000
+>
+MONGODB_URI=<your-mongodb-uri   ACCESS_TOKEN_SECRET=<your-access-token-secret>
+REFRESH_TOKEN_SECRET=<your-refresh-token-secret>
+ACCESS_TOKEN_EXPIRY=15m
+REFRESH_TOKEN_EXPIRY=7d
+CLOUDINARY_CLOUD_NAME=<your-cloudinary-cloud-name>
+CLOUDINARY_API_KEY=<your-cloudinary-api-key>
+CLOUDINARY_API_SECRET=<your-cloudinary-api-secret>
+CORS_ORIGIN=<your-frontend-url>
 
 4. Start the server:
    ```bash
-   npm start
+   npm start    
    ```
 
 API Endpoints
-* User Routes (/api/v1/users)
+
+User Routes (/api/v1/users)
 * POST /register: Register a new user.
 * POST /login: Login a user.
 * POST /logout: Logout a user.
@@ -104,15 +119,10 @@ Like Routes (/api/v1/likes)
 * POST /toggle/c/:commentId: Like or unlike a comment.
 * POST /toggle/t/:tweetId: Like or unlike a tweet.
 * GET /videos: Get all liked videos.
-
-Subscription Routes (/api/v1/subscription)
+* Subscription Routes (/api/v1/subscription)
 * POST /c/:channelId: Subscribe or unsubscribe to a channel.
 * GET /c/:channelId: Get all subscribers of a channel.
 * GET /u/:subscriberId: Get all channels a user has subscribed to.
-
-Dashboard Routes (/api/v1/dashboard)
-* GET /stats: Get channel statistics.
-* GET /videos: Get all videos of the channel.
 
 Dashboard Routes (/api/v1/dashboard)
 * GET /stats: Get channel statistics.
